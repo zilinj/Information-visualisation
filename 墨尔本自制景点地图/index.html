@@ -1,0 +1,1035 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div id="map"></div>
+<div class="map-overlay" id="title">
+  <h2>Welcome to Melbourne</h2>
+</div>
+
+<div class="detail" id="info">
+  <h2 id="info_title">POI details</h2>
+  <p id="info_name"></p>
+  <p id="info_theme"></p>
+  <p id="info_subtheme"></p>
+  <p id="info_fee"></p>
+  <p id="info_address"></p>
+  <p id="info_open"></p>
+  <p id="info_close"></p>
+  <p id="info_desc"></p>
+  <p id="info_link"></p>
+  <p id="info_phone"></p>
+
+
+
+
+</div>
+
+<div class="detail" id="selection">
+  <select id="filter">
+    <option value="all">all</option>
+    <option value="Architectural & Public Buildings">Architectural and Public Buildings</option>
+    <option value="Outdoor Recreation">Outdoor Recreation</option>
+    <option value="Art & Culture">Art and Culture</option>
+    <option value="Entertainment">Entertainment</option>
+    <option value="Visitor infomation centres">Visitor infomation centres</option>
+  </select>
+
+  
+
+  <div>
+    <input type="checkbox" id="tram_route" name="tram_route" checked>
+    <label for="tram_route">Tram Routes</label>
+  </div>
+
+  <div>
+    <input type="checkbox" id="toilets" name="toilets">
+    <label for="toilets">Toilets</label>
+  </div>
+  
+  
+  <div>
+    <input type="checkbox" id="restaurants" name="restaurants">
+    <label for="restaurants">Restaurants</label>
+  </div>
+  
+    <div>
+    <input type="checkbox" id="on_parking" name="on_parking">
+    <label for="on_parking">Onstreet parking</label>
+  </div>
+
+      <div>
+    <input type="checkbox" id="off_parking" name="off_parking">
+    <label for="off_parking">Offstreet parking</label>
+  </div>
+
+</div>
+
+
+<!-- <div class="overlay" id="legend"></div> -->
+
+
+
+
+<script>
+
+var POI_COLOR = 'red';
+var TRAM_STOP_COLOR = 'green';
+var TOILET_COLOR = '#00d0ff';
+var RESTAURANT_COLOR = '#7bff00';
+var ON_PARKING_COLOR = '#ff8400';
+var OFF_PARKING_COLOR = '#ffb300';
+
+
+
+addLegend('Tram Stop',TRAM_STOP_COLOR);
+addLegend('Point of Interest',POI_COLOR);
+
+
+
+
+
+mapboxgl.accessToken = 'pk.eyJ1IjoiYmFndXZpeG9rIiwiYSI6ImNrZnVvZGd2ejBsMWsydnFxZ25hMDVtY3AifQ.zfjssfiXsmg2OhpkTcKihQ';
+var map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/light-v9',
+  center: [144.96772476196708, -37.81166822211591],
+  zoom: 14
+});
+
+var poiFilter = document.getElementById("filter");
+
+
+
+var routes = ['1', '5', '6', '11', '12', '16', '19', '30', '35', '48', '57', '58', '59', '64', '67', '70', '72', '75', '86', '96', '109', '3/3a'];
+
+var route_colors = ['#8cff00', '#f70', '#ffc800', '#f6ff00', '#a6ff00', '#40ff00', '#0f8', '#00ffd5', '#00c8ff', '#006aff', '#0008ff', '#50f', '#9d00ff', '#d400ff', '#ff00fb', '#ff00a1', '#ff00b2', '#4000ff', '#00ffea', '#0f7', '#fe0', '#f60']
+
+
+var displayTramRoutes = true;
+var displayOtherPOIs = false;
+var displayToilets = false;
+var displayRestaurants = false;
+var displayOnParkings = false;
+var displayOffParkings = false;
+
+
+map.getCanvas().style.cursor = 'pointer';
+
+
+
+map.on('load', function() {
+
+    map.loadImage(
+    'https://img.icons8.com/color/64/000000/restaurant-menu.png',
+    function (error, image) {
+      if (error) throw error;
+      map.addImage('restaurant', image);});
+    // https://img.icons8.com/nolan/64/restaurant.png
+    // <img src="https://img.icons8.com/color/70/000000/restaurant-membership-card.png"/>
+    // <img src="https://img.icons8.com/officexs/96/000000/restaurant-membership-card.png"/>
+    // <img src="https://img.icons8.com/office/40/000000/restaurant-membership-card.png"/>
+    // <img src="https://img.icons8.com/color/48/000000/dining-room.png"/>
+    // <img src="https://img.icons8.com/color/64/000000/restaurant-menu.png"/>
+    // <img src="https://img.icons8.com/color/48/000000/restaurant.png"/>
+    // <img src="https://img.icons8.com/emoji/48/000000/fork-and-knife-with-plate-emoji.png"/>
+
+        map.loadImage(
+    'https://img.icons8.com/emoji/64/000000/restroom-emoji.png',
+    function (error, image) {
+      if (error) throw error;
+      map.addImage('toilet', image);});
+    // https://img.icons8.com/color/64/000000/toilet.png
+    // <img src="https://img.icons8.com/ios-filled/50/000000/toilet.png"/>
+    // <img src="https://img.icons8.com/material-two-tone/48/000000/toilet.png"/>
+    // <img src="https://img.icons8.com/dusk/64/000000/toilet.png"/>
+    // <img src="https://img.icons8.com/emoji/48/000000/restroom-emoji.png"/>
+    
+
+            map.loadImage(
+    'https://img.icons8.com/fluent/60/000000/bus.png',
+    function (error, image) {
+      if (error) throw error;
+      map.addImage('tram', image);});
+    // https://img.icons8.com/dusk/64/000000/bus.png
+    // <img src="https://img.icons8.com/ultraviolet/40/000000/bus.png"/>
+    // <img src="https://img.icons8.com/fluent/48/000000/bus.png"/>
+    // <img src="https://img.icons8.com/color/48/000000/bus.png"/>
+    // <img src="https://img.icons8.com/emoji/48/000000/bus-stop-emoji.png"/>
+    // <img src="https://img.icons8.com/emoji/48/000000/bus-emoji.png"/>
+
+  map.loadImage(
+    'https://img.icons8.com/ios-filled/64/000000/parking.png',
+    function (error, image) {
+      if (error) throw error;
+      map.addImage('off_parking', image);});
+    // https://img.icons8.com/ios-filled/50/000000/parking.png
+    // https://img.icons8.com/dusk/64/000000/parking.png
+
+    map.loadImage(
+    'https://img.icons8.com/color/64/000000/parking.png',
+    function (error, image) {
+      if (error) throw error;
+      map.addImage('on_parking', image);});
+    // https://img.icons8.com/color/48/000000/parking.png
+    // https://img.icons8.com/wired/64/000000/parking.png
+
+        map.loadImage(
+    'https://img.icons8.com/color/64/000000/marker.png',
+    function (error, image) {
+      if (error) throw error;
+      map.addImage('poi', image);});
+
+  addSources();
+  addLayers(routes, route_colors);
+
+
+  map.on('click', function(e) {
+
+    let pointInfo = map.queryRenderedFeatures(e.point, {
+      layers: ['popopopo']
+    });
+
+    if (pointInfo.length > 0) {
+      coordinates = [e.lngLat.lng,e.lngLat.lat];
+      map.flyTo({
+        center: coordinates,
+        zoom: 15
+      });
+
+      var open_time = 0;
+      var close_time = 0;
+
+      switch(new Date().getDay()) {
+        case 0:
+        console.log('sunday')
+          open_time = pointInfo[0].properties.sunop
+          close_time = pointInfo[0].properties.suncl
+          break;
+        case 1:
+          console.log('monday')
+          open_time = pointInfo[0].properties.monop
+          close_time = pointInfo[0].properties.moncl
+          break;
+        case 2:
+          console.log('tuesday')
+          open_time = pointInfo[0].properties.tueop
+          close_time = pointInfo[0].properties.tuecl
+          break;
+        case 3:
+          console.log('wednesday')
+          open_time = pointInfo[0].properties.wedop
+          close_time = pointInfo[0].properties.wedcl
+          break;
+        case 4:
+          console.log('thursday')
+          open_time = pointInfo[0].properties.thurop
+          close_time = pointInfo[0].properties.thurcl
+          break;
+        case 5:
+          console.log('friday')
+          open_time = pointInfo[0].properties.friop
+          close_time = pointInfo[0].properties.fricl
+          break;   
+        case 6:
+          console.log('saturday')
+          open_time = pointInfo[0].properties.satop
+          close_time = pointInfo[0].properties.satcl
+          break;                        
+        default:
+          open_time = pointInfo[0].properties.monop
+          close_time = pointInfo[0].properties.moncl
+    }
+
+
+
+
+      document.getElementById('info_title').innerHTML = '<h2>' +'<em>' + pointInfo[0].properties.name + '</em></h2>';
+
+      document.getElementById('info_theme').innerHTML = '<p><em><b> Theme: </b></em>' + pointInfo[0].properties.theme + '</p>';
+      document.getElementById('info_subtheme').innerHTML = '<p><em><b> SubTheme: </b></em>' + pointInfo[0].properties.subtheme + '</p>';
+      document.getElementById('info_fee').innerHTML = '<p><em><b> Fee: </b></em>' + pointInfo[0].properties.fee + '</p>';
+      document.getElementById('info_address').innerHTML = '<p><em><b> Address: </b></em>' + pointInfo[0].properties.address+ '</p>';
+      document.getElementById('info_open').innerHTML = '<p><em><b> Open Hour: </b></em>' + open_time + '</p>';
+      document.getElementById('info_close').innerHTML = '<p><em><b> Close Hour: </b></em>' + close_time + '</p>';
+      document.getElementById('info_desc').innerHTML = '<p><em><b> Description: </b></em>' + pointInfo[0].properties.descr + '</p>';
+      document.getElementById('info_link').innerHTML = '<p><em><b> Website: </b></em>' + pointInfo[0].properties.url + '</p>';
+
+
+      var trams = pointInfo[0].properties.nearest_tram.split(',');
+      var stops = pointInfo[0].properties.nearest_stop.split(',');
+      var toilets = pointInfo[0].properties.toilet.split(',');
+      var restaurants = pointInfo[0].properties.restaurant.split(',');
+      var on_parkings = pointInfo[0].properties.onstreet_parking.split(',');
+      var off_parkings = pointInfo[0].properties.offstreet_parking.split(',');
+      //console.log(trams);
+      //console.log(stops);
+      //console.log(toilets);
+      //console.log(restaurants);
+      //console.log(on_parkings);
+      console.log(off_parkings);
+
+      if (displayTramRoutes) {
+
+        clearTramRouteHighlight(routes);
+        setTramRouteHighlight(trams);
+
+        setTramStopsHighlight(stops);
+      }
+      if(displayToilets){
+        clearToiletsHighlight();
+        setToiletsHighlight(toilets);
+      }
+
+      if (displayOtherPOIs == false) {
+        clearPOI();
+      }
+      
+      if(displayRestaurants){
+        clearRestaurantsHighlight();
+        setRestaurantsHighlight(restaurants);
+      }
+      if(displayOnParkings){
+        clearOnParkingsHighlight();
+        setOnParkingsHighlight(on_parkings);
+      }
+
+      if(displayOffParkings){
+        clearOffParkingsHighlight();
+        setOffParkingsHighlight(off_parkings);
+      }
+
+
+      setPointHighlight(pointInfo[0].properties.name);
+
+    } else {
+
+      map.flyTo({
+  center: [144.96772476196708, -37.81166822211591],
+  zoom: 14
+});
+
+      clearTramRouteHighlight(routes);
+      clearPointHighlight();
+      clearTramStopsHighlight();
+      clearToiletsHighlight();
+      clearRestaurantsHighlight();
+      clearOnParkingsHighlight();
+      clearOffParkingsHighlight();
+      displayPOI();
+
+    }
+  });
+
+
+
+  
+var popup = new mapboxgl.Popup({
+  closeButton: false,
+  closeOnClick: false
+});
+
+map.on('mouseenter','popopopo', function (e){
+  coordinates = [e.lngLat.lng,e.lngLat.lat];
+  popup.setLngLat(coordinates)
+  .setHTML(e.features[0].properties.name )
+  .addTo(map);
+});
+
+map.on('mouseleave','popopopo', function (e){
+  popup.remove();
+});
+
+
+map.on('mouseenter','tram_stops_highlight', function (e){
+  coordinates = [e.lngLat.lng,e.lngLat.lat];
+  popup.setLngLat(coordinates)
+  .setHTML(e.features[0].properties.Stop_Name)
+  .addTo(map);
+});
+
+map.on('mouseleave','tram_stops_highlight', function (e){
+  popup.remove();
+});
+
+map.on('mouseenter','toilet', function (e){
+  coordinates = [e.lngLat.lng,e.lngLat.lat];
+  popup.setLngLat(coordinates)
+  .setHTML(e.features[0].properties.name)
+  .addTo(map);
+});
+
+map.on('mouseleave','toilet', function (e){
+  popup.remove();
+});
+
+
+map.on('mouseenter','restaurant', function (e){
+  coordinates = [e.lngLat.lng,e.lngLat.lat];
+  popup.setLngLat(coordinates)
+  .setHTML('Restaurant: '+e.features[0].properties.ResturantName + ' Address:' + e.features[0].properties.Streetaddress)
+  .addTo(map);
+});
+
+map.on('mouseleave','restaurant', function (e){
+  popup.remove();
+});
+
+
+map.on('mouseenter','on_parking', function (e){
+  coordinates = [e.lngLat.lng,e.lngLat.lat];
+  popup.setLngLat(coordinates)
+  .setHTML('Status: '+e.features[0].properties.status)
+  .addTo(map);
+});
+
+map.on('mouseleave','on_parking', function (e){
+  popup.remove();
+});
+
+
+map.on('mouseenter','off_parking', function (e){
+  coordinates = [e.lngLat.lng,e.lngLat.lat];
+  popup.setLngLat(coordinates)
+  .setHTML('Address: '+e.features[0].properties.address)
+  .addTo(map);
+});
+
+map.on('mouseleave','off_parking', function (e){
+  popup.remove();
+});
+
+for (var i = 0; i < routes.length; i++) {
+  map.on('mouseenter',routes[i], function (e){
+    coordinates = [e.lngLat.lng,e.lngLat.lat];
+    popup.setLngLat(coordinates)
+    .setHTML('Route: '+e.features[0].properties.ROUTESHTNM)
+    .addTo(map);
+  });
+
+  map.on('mouseleave',routes[i], function (e){
+    popup.remove();
+  });
+}
+
+  addPoiFilter();
+  addTramRoutesFilter();
+  // displayOtherPOI();
+  displayToilet();
+  displayRestaurant();
+  displayOnParking();
+  displayOffParking();
+});
+
+
+map.addControl(new mapboxgl.NavigationControl());
+
+
+
+function clearTramRouteHighlight(routes) {
+  for (var i = 0; i < routes.length; i++) {
+    map.setFilter(routes[i], [
+      '==',
+      'ROUTESHTNM',
+      ''
+    ]);
+  }
+}
+
+function clearPointHighlight() {
+  map.setFilter('poi_highlight', [
+    '==',
+    'name',
+    ''
+  ]);
+
+}
+
+function setPointHighlight(name) {
+  map.setFilter('poi_highlight', [
+    '==',
+    'name',
+    name
+  ]);
+}
+
+function setToiletsHighlight(toiletIds) {
+  map.setFilter('toilet', [
+    'match',
+    ['get', 'toilet_id'],
+    toiletIds,
+    true,
+    false
+  ]);
+}
+
+function clearToiletsHighlight() {
+  map.setFilter('toilet', [
+    '==',
+    'toliet_id',
+    ''
+  ]);
+}
+
+
+function setRestaurantsHighlight(restaurantIds) {
+  var restaurants = new Array(8);
+  if(restaurantIds.length > 8){
+    for(var i =0; i < 8; i++){
+      var index = Math.floor(Math.random() * restaurantIds.length);
+      restaurants[i] = restaurantIds[index];
+    }
+
+    restaurants = Array.from(new Set(restaurants));
+  }
+  else{
+    restaurants = restaurantIds;
+  }
+
+
+  map.setFilter('restaurant', [
+    'match',
+    ['get','restaurant_id'],
+    restaurants,
+    true,
+    false
+  ]);
+}
+
+function clearRestaurantsHighlight() {
+  map.setFilter('restaurant', [
+    '==',
+    'restaurant_id',
+    ''
+  ]);
+}
+
+function setOnParkingsHighlight(parkings) {
+  var newParkings = new Array(5);
+  if(parkings.length > 5){
+    console.log(">5");
+    for(var i =0; i < 5; i++){
+      var index = Math.floor(Math.random()*parkings.length);
+      newParkings[i] = parkings[index];
+    }
+      newParkings = Array.from(new Set(newParkings));
+  }
+  else{
+    newParkings = parkings;
+  }
+  console.log(newParkings);
+  map.setFilter('on_parking', [
+    'match',
+    ['get','bay_id'],
+    newParkings,
+    true,
+    false
+  ]);
+}
+
+function clearOnParkingsHighlight() {
+  map.setFilter('on_parking', [
+    '==',
+    'bay_id',
+    ''
+  ]);
+}
+
+function setOffParkingsHighlight(parkings) {
+    var newParkings = new Array(5);
+  if(parkings.length > 5){
+    console.log(">5");
+    for(var i =0; i < 5; i++){
+      var index = Math.floor(Math.random()*parkings.length);
+      newParkings[i] = parkings[index];
+    }
+      newParkings = Array.from(new Set(newParkings));
+  }
+  else{
+    newParkings = parkings;
+  }
+  map.setFilter('off_parking', [
+    'match',
+    ['get','PropertyID'],
+    newParkings,
+    true,
+    false
+  ]);
+}
+
+function clearOffParkingsHighlight() {
+  map.setFilter('off_parking', [
+    '==',
+    'PropertyID',
+    ''
+  ]);
+}
+
+function displayPOI() {
+  var theme = poiFilter.value;
+    if (theme == 'all') {
+      clearPointFilter();
+
+    } else {
+      setPointFilter(theme);
+    }
+}
+
+function clearPOI() {
+  map.setFilter('popopopo', [
+    '==',
+    'name',
+    ' '
+  ]);
+}
+
+function setTramRouteHighlight(trams) {
+  for (var i = 0; i < trams.length; i++) {
+    map.setFilter(trams[i], [
+      '==',
+      'ROUTESHTNM',
+      trams[i]
+    ]);
+  }
+}
+
+function setTramStopsHighlight(stops) {
+  map.setFilter('tram_stops_highlight', [
+    'match',
+    ['get', 'Stop Id'],
+    stops,
+    true,
+    false
+  ]);
+}
+
+function clearTramStopsHighlight() {
+  map.setFilter('tram_stops_highlight', [
+    '==',
+    "Stop Id",
+    ''
+  ]);
+}
+
+
+function setPointFilter(theme) {
+  map.setFilter('popopopo', [
+    '==',
+    'theme',
+    theme
+  ]);
+}
+
+function clearPointFilter() {
+  map.setFilter('popopopo', [
+    '!=',
+    'theme',
+    ""
+  ]);
+}
+
+function hideTramRoute() {
+  map.setFilter('tram_routes', [
+    '==',
+    'ROUTESHTNM',
+    ''
+  ]);
+}
+
+function displayTramRoute() {
+  map.setFilter('tram_routes', [
+    '!=',
+    'ROUTESHTNM',
+    ''
+  ]);
+}
+
+function addSources() {
+  map.addSource('pois', {
+    'type': 'vector',
+    'url': 'mapbox://baguvixok.ckg8vywnp0mgn2asai66g32lj-3afz8'
+  });
+
+  map.addSource('tram', {
+    'type': 'vector',
+    'url': 'mapbox://baguvixok.ckg4mjh070sm829lrhu3zlxba-35y33'
+  });
+
+  map.addSource('tram_stops', {
+    'type': 'vector',
+    'url': 'mapbox://baguvixok.ckg9hznu700gn2fp9ftwentcy-3kuxr'
+  });
+
+  map.addSource('toilet', {
+    'type': 'vector',
+    'url': 'mapbox://baguvixok.ckg92r17g2ccm2apiyp1hahw3-2nv3p'
+  });
+  
+    map.addSource('restaurant', {
+    'type': 'vector',
+    'url': 'mapbox://baguvixok.ckgi3owx10hkd29pe4xrl65b7-93bbs'
+  });
+
+  map.addSource('on_parking', {
+    'type': 'vector',
+    'url': 'mapbox://baguvixok.ckg94eg7p02p42bmt7n4wxm68-5ez29'
+  });
+
+  map.addSource('off_parking', {
+    'type': 'vector',
+    'url': 'mapbox://baguvixok.ckg9jcqq40o5y23sbjhraovsn-6wqxs'
+  });
+}
+
+function addLayers(routes, route_colors) {
+
+
+  map.addLayer({
+    id: 'building_new',
+    type: 'fill',
+    source: {
+      type: 'vector',
+      url: 'mapbox://mapbox.mapbox-streets-v8'
+    }, 
+    'source-layer': 'building',
+    "paint": {
+      "fill-color": "#ffffb2",
+      "fill-opacity": 0.6
+      
+    // edc68c, fee391
+    }
+  }, 'building');
+
+    map.addLayer({
+    id: 'water_new',
+    type: 'fill',
+    source: {
+      type: 'vector',
+      url: 'mapbox://mapbox.mapbox-streets-v8'
+    }, 
+    'source-layer': 'water',
+    "paint": {
+      "fill-color": "#93bdf1"
+    }
+  }, 'building');
+  
+    map.addLayer({
+    id: 'landuse_new',
+    type: 'fill',
+    source: {
+      type: 'vector',
+      url: 'mapbox://mapbox.mapbox-streets-v8'
+    }, 
+    'source-layer': 'landuse',
+    "paint": {
+      "fill-color": "#b1e1a8",
+
+    }
+  }, 'building');
+
+    map.addLayer({
+    id: 'bridge-motorway-trunk-2_new',
+    type: 'line',
+    source: {
+      type: 'vector',
+      url: 'mapbox://mapbox.mapbox-streets-v8'
+    }, 
+    'source-layer': 'road',
+    "paint": {
+      "line-color": "#edd073",
+    "line-width": 8,
+    //"line-gap-width": 7
+    "line-opacity": 0.6
+    },
+  "filter": ["in", "class", "motorway", "trunk"]
+  });
+
+  map.addLayer({
+    'id': 'tram_routes',
+    'type': 'line',
+    'source': 'tram',
+    'source-layer': 'ptv_metro_tram_route',
+    'paint': {
+      'line-color': '#b0aead',
+      'line-width': 3
+    }
+  });
+
+
+  map.addLayer({
+    'id': 'popopopo',
+    'type': 'symbol',
+    'source': 'pois',
+    'source-layer': 'POI_data',
+    'layout':{
+        'icon-image' : 'poi',
+        'icon-size':0.4,
+        'icon-allow-overlap':true,
+    },
+  });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  for (var i = 0; i < routes.length; i++) {
+    map.addLayer({
+      'id': routes[i],
+      'type': 'line',
+      'source': 'tram',
+      'source-layer': 'ptv_metro_tram_route',
+      'paint': {
+        'line-color': route_colors[i],
+        'line-width': 8
+      },
+      'filter': ['==', 'ROUTESHTNM', '']
+    });
+
+  }
+  map.addLayer({
+    'id': 'tram_stops',
+    'type': 'circle',
+    'source': 'tram_stops',
+    'source-layer': 'tram_stop',
+    'paint': {
+      'circle-radius': 5,
+      'circle-color': TRAM_STOP_COLOR,
+      'circle-stroke-width': 2
+    },
+    'filter': ['==', 'Stop Id', '']
+  });
+
+  map.addLayer({
+    'id': 'tram_stops_highlight',
+    'type': 'symbol',
+    'source': 'tram_stops',
+    'source-layer': 'tram_stop',
+    'layout':{
+        'icon-image' : 'tram',
+        'icon-size':0.8,
+        'icon-allow-overlap':true,
+    },
+    'filter': ['==', 'Stop Id', '']
+  });
+
+
+
+  map.addLayer({
+    'id': 'toilet',
+    'type': 'symbol',
+    'source': 'toilet',
+    'source-layer': 'toilet',
+    'layout':{
+        'icon-image' : 'toilet',
+        'icon-size':0.6,
+        'icon-allow-overlap':true,
+    },
+    'filter': ['==', 'tolite_id', '']
+  });
+  
+    map.addLayer({
+    'id': 'restaurant',
+    'type': 'symbol',
+    'source': 'restaurant',
+    'source-layer': 'restaurant',
+    'layout':{
+        'icon-image' : 'restaurant',
+        'icon-size':0.6,
+        'icon-allow-overlap':false,
+    },
+    'filter': ['==', 'restaurant_id', '']
+  });
+    
+    map.addLayer({
+    'id': 'on_parking',
+    'type': 'symbol',
+    'source': 'on_parking',
+    'source-layer': 'on_parking',
+    'layout':{
+        'icon-image' : 'on_parking',
+        'icon-size':0.6,
+        'icon-allow-overlap':false,
+    },
+    'filter': ['==', 'bay_id', '']
+  });
+
+     map.addLayer({
+    'id': 'off_parking',
+    'type': 'symbol',
+    'source': 'off_parking',
+    'source-layer': 'off_parking',
+    'layout':{
+        'icon-image' : 'off_parking',
+        'icon-size':0.6,
+        'icon-allow-overlap':false,
+    },
+    'filter': ['==', 'PropertyID', '']
+  });
+
+  map.addLayer({
+    'id': 'poi_highlight',
+    'type': 'symbol',
+    'source': 'pois',
+    'source-layer': 'POI_data',
+    'layout':{
+        'icon-image' : 'poi',
+        'icon-size':0.8,
+        'icon-allow-overlap':true,
+    },
+    'filter': ['==', 'name', '']
+  });
+
+
+}
+
+function addPoiFilter() {
+
+  poiFilter.onchange = function(e) {
+    var theme = poiFilter.value;
+    if (theme == 'all') {
+      clearPointFilter();
+
+    } else {
+      setPointFilter(theme);
+    }
+  }
+}
+
+function addTramRoutesFilter() {
+  var tramRoutes = document.getElementById("tram_route");
+  tramRoutes.onclick = function(e) {
+    if (tramRoutes.checked) {
+      displayTramRoutes = true;
+      displayTramRoute();
+      addLegend('Tram Stop','green');
+    } else {
+      displayTramRoutes = false;
+      hideTramRoute();
+      clearTramRouteHighlight(routes);
+      clearTramStopsHighlight();
+      removeLegend('Tram Stop');
+    }
+  }
+}
+
+// function displayOtherPOI() {
+//   var display = document.getElementById("pois");
+//   display.onclick = function(e) {
+//     if (display.checked) {
+//       displayOtherPOIs = true;
+//     } else {
+//       displayOtherPOIs = false;
+//     }
+//   }
+// }
+
+function displayToilet() {
+  var display = document.getElementById("toilets");
+  display.onclick = function(e) {
+    if (display.checked) {
+      displayToilets = true;
+      addLegend('Toilet',TOILET_COLOR);
+    } else {
+      displayToilets = false;
+      clearToiletsHighlight();
+      removeLegend('Toilet');
+    }
+  }
+}
+
+function displayRestaurant() {
+  var display = document.getElementById("restaurants");
+  display.onclick = function(e) {
+    if (display.checked) {
+      displayRestaurants = true;
+      addLegend('Restaurant',RESTAURANT_COLOR);
+    } else {
+      displayRestaurants = false;
+      clearRestaurantsHighlight();
+      removeLegend('Restaurant');
+    }
+  }
+}
+
+function displayOnParking() {
+  var display = document.getElementById("on_parking");
+  display.onclick = function(e) {
+    if (display.checked) {
+      displayOnParkings = true;
+      addLegend('On Street Parking',ON_PARKING_COLOR);
+    } else {
+      displayOnParkings = false;
+      clearOnParkingsHighlight();
+      removeLegend('On Street Parking');
+    }
+  }
+}
+
+function displayOffParking() {
+  var display = document.getElementById("off_parking");
+  display.onclick = function(e) {
+    if (display.checked) {
+      displayOffParkings = true;
+      addLegend('Off Street Parking',OFF_PARKING_COLOR);
+    } else {
+      displayOffParkings = false;
+      clearOffParkingsHighlight();
+      removeLegend('Off Street Parking');
+    }
+  }
+}
+
+function addLegend(layer,color){
+  // var item = document.createElement('div');
+  // var key = document.createElement('span');
+  // key.className = 'legend-key';
+  // key.style.backgroundColor = color;
+  // var value = document.createElement('span');
+  // value.innerHTML = layer;
+  // item.appendChild(key);
+  // item.appendChild(value);
+  // item.setAttribute('id',layer);
+  // legend.appendChild(item);
+}
+
+function removeLegend(layer){
+
+  // var element = document.getElementById(layer);
+  // console.log(element);
+  // element.parentNode.removeChild(element);
+}
+
+
+
+
+</script>
+
+</body>
+</html>
